@@ -6,8 +6,7 @@
       "env": {
         "DRUPAL_BASE_URL": "${DRUPAL_BASE_URL}",
         "DRUPAL_USER": "${DRUPAL_USER}",
-        "DRUPAL_PASSWORD": "${DRUPAL_PASSWORD}",
-        "DRUPAL_JSONAPI_PREFIX": "${DRUPAL_JSONAPI_PREFIX}"
+        "DRUPAL_PASSWORD": "${DRUPAL_PASSWORD}"
       }
     }
   }

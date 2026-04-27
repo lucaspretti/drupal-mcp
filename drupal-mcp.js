@@ -30,7 +30,9 @@ const args = process.argv.slice(2);
 function argOrEnv(flag, envName, fallback = undefined) {
   const found = args.find(a => a.startsWith(`--${flag}=`));
   if (found) return found.split('=').slice(1).join('=');
-  return process.env[envName] ?? fallback;
+  const envVal = process.env[envName];
+  if (envVal && /^\$\{[^}]+\}$/.test(envVal)) return fallback;
+  return envVal ?? fallback;
 }
 
 const config = {
@@ -416,9 +418,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     return await handlers[handlerKey](rawArgs || {});
   }
   catch (err) {
+    const cause = err.cause?.message || err.cause?.code || '';
+    const msg = err.message || String(err);
     return {
       isError: true,
-      content: [{ type: 'text', text: `Error: ${err.message || String(err)}` }],
+      content: [{ type: 'text', text: cause ? `Error: ${msg} (cause: ${cause})` : `Error: ${msg}` }],
     };
   }
 });
