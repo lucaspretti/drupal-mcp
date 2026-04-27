@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "drupal": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/drupal-mcp.js"],
+      "env": {
+        "DRUPAL_BASE_URL": "${DRUPAL_BASE_URL}",
+        "DRUPAL_USER": "${DRUPAL_USER}",
+        "DRUPAL_PASSWORD": "${DRUPAL_PASSWORD}",
+        "DRUPAL_JSONAPI_PREFIX": "${DRUPAL_JSONAPI_PREFIX}"
+      }
+    }
+  }
+}

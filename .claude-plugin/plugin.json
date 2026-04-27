@@ -1,0 +1,8 @@
+{
+  "name": "drupal-mcp",
+  "version": "0.1.0",
+  "description": "MCP bridge for Drupal sites via JSON:API. List, read, create, update, delete nodes, taxonomy terms, and users from any Drupal 10/11 site that has the core jsonapi module enabled.",
+  "author": {
+    "name": "Lucas Pretti"
+  }
+}
