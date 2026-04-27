@@ -13,12 +13,55 @@ The contrib `drupal/mcp` module currently has ~250 installs and is in flux ("mer
 
 ## Drupal-side setup (one-time)
 
-1. Make sure the **JSON:API** module is enabled (`drush en jsonapi -y`). Core module, ships with Drupal.
-2. Create a dedicated bot user with the minimum permissions you want to expose. Suggested:
-   - Create role `mcp_bot`.
-   - Grant only the bundles + operations you need (Article: View / Edit / Delete / Create, etc.). No admin perms.
-   - Create user `mcp_bot` with that role and a strong password (store it in your password manager).
-3. Optionally tighten JSON:API write access. By default it reads everything; writes are disabled unless you flip `jsonapi.settings:read_only = false` (set via Drush, `drush config:set jsonapi.settings read_only false -y`). Keep `read_only = true` if you only want list / read operations.
+### Required modules
+
+```bash
+drush en jsonapi serialization basic_auth -y
+```
+
+- **`jsonapi`** — exposes `/jsonapi/*` endpoints. Core module.
+- **`serialization`** — JSON:API dependency. Core module.
+- **`basic_auth`** — required for `Authorization: Basic` header authentication. Core module, **not enabled by default**. Without it, only anonymous reads work; every write returns 401.
+
+### JSON:API writes
+
+By default JSON:API is read-only. If you need create / update / delete, flip the switch:
+
+```bash
+drush config:set jsonapi.settings read_only false -y
+```
+
+Or in `config/sync/jsonapi.settings.yml` (CMI-managed sites):
+
+```yaml
+read_only: false
+```
+
+Keep `read_only: true` for read-only deployments — the plugin still works for `drupal_list_*` / `drupal_get_node` / `drupal_query_jsonapi`.
+
+### Bot role + user
+
+Create a dedicated role with the minimum permissions you want to expose. Suggested baseline (`config/sync/user.role.mcp_bot.yml`):
+
+```yaml
+langcode: en
+status: true
+dependencies: {}
+id: mcp_bot
+label: 'MCP bot'
+weight: 10
+is_admin: false
+permissions:
+  - 'access content'
+  - 'access user profiles'
+  - 'administer nodes'
+  - 'administer taxonomy'
+  - 'view own unpublished content'
+```
+
+Then `drush user:create mcp_bot --password='<strong-pw>'` and `drush user:role:add mcp_bot mcp_bot`. Store the password in your secrets manager.
+
+For a tighter scope (e.g. read-only, articles only), drop `administer nodes` / `administer taxonomy` and grant only `'view article'` / `'create article content'` etc.
 
 ## Install (Claude Code plugin)
 
@@ -92,6 +135,40 @@ node drupal-mcp.js \
 ```
 
 `node drupal-mcp.js --help` for the full list.
+
+## Troubleshooting
+
+### `Error: fetch failed (cause: getaddrinfo ENOTFOUND <host>${var_name})`
+
+Claude Code's `${VAR}` interpolation in `.mcp.json` substitutes from `process.env`, not from the `settings.json` env block alone. When a referenced var is unset upstream, the literal string `${var_name}` is passed to the spawned process and concatenated into the URL.
+
+Fix: ensure every var in `.mcp.json` env is also set in `~/.claude/settings.json` (`env` block) or your shell environment. Or remove optional vars from `.mcp.json` and rely on the script's defaults.
+
+### `Error [ERR_MODULE_NOT_FOUND]: Cannot find module '...zod-to-json-schema/dist/esm/index.js'`
+
+The `@modelcontextprotocol/sdk` postinstall race occasionally leaves `zod-to-json-schema` half-built. Reinstall:
+
+```bash
+cd ~/.claude/plugins/cache/<marketplace>/drupal-mcp/<version>
+rm -rf node_modules package-lock.json && npm install
+```
+
+### `401 Unauthorized` on every request
+
+- The `basic_auth` core module is not enabled. `drush en basic_auth -y`.
+- Or the password is wrong / the user is blocked.
+
+### `403 Forbidden` on a specific bundle
+
+The bot role lacks the permission for that bundle. Grant `'create <bundle> content'`, `'edit any <bundle> content'`, etc.
+
+### `405 Method Not Allowed` on writes
+
+`jsonapi.settings.read_only` is still `true`. See "JSON:API writes" above.
+
+### `301` redirects to a language-prefixed URL
+
+If the `language` module is enabled, `/jsonapi/...` redirects to `/<langcode>/jsonapi/...`. Node's `fetch` follows automatically; `curl` needs `-L`. Nothing to fix on the server side.
 
 ## Security notes
 
