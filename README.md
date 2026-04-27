@@ -41,7 +41,9 @@ Keep `read_only: true` for read-only deployments — the plugin still works for 
 
 ### Bot role + user
 
-Create a dedicated role with the minimum permissions you want to expose. Suggested baseline (`config/sync/user.role.mcp_bot.yml`):
+Two patterns, pick one based on how much you trust the bot:
+
+**A) Admin role (simplest, recommended for full-access bots)**. Setting `is_admin: true` bypasses every permission check, same as the default `administrator` role. The single setting + a strong password gates all access.
 
 ```yaml
 langcode: en
@@ -50,18 +52,30 @@ dependencies: {}
 id: mcp_bot
 label: 'MCP bot'
 weight: 10
+is_admin: true
+permissions: {}
+```
+
+**B) Scoped role (when you want explicit limits)**. List exactly the perms the bot may use. Note that `administer nodes` alone does not grant create / edit / delete on bundles — those need either bundle-specific perms (`'create article content'`, `'delete any page content'`, etc.) or `'bypass node access'`.
+
+```yaml
 is_admin: false
 permissions:
   - 'access content'
   - 'access user profiles'
-  - 'administer nodes'
+  - 'bypass node access'        # or per-bundle perms
   - 'administer taxonomy'
   - 'view own unpublished content'
 ```
 
-Then `drush user:create mcp_bot --password='<strong-pw>'` and `drush user:role:add mcp_bot mcp_bot`. Store the password in your secrets manager.
+Then create the user:
 
-For a tighter scope (e.g. read-only, articles only), drop `administer nodes` / `administer taxonomy` and grant only `'view article'` / `'create article content'` etc.
+```bash
+drush user:create mcp_bot --password='<strong-pw>'
+drush user:role:add mcp_bot mcp_bot
+```
+
+Store the password in your secrets manager.
 
 ## Install (Claude Code plugin)
 
@@ -160,7 +174,9 @@ rm -rf node_modules package-lock.json && npm install
 
 ### `403 Forbidden` on a specific bundle
 
-The bot role lacks the permission for that bundle. Grant `'create <bundle> content'`, `'edit any <bundle> content'`, etc.
+The bot role lacks the permission for that bundle. Either grant `'create <bundle> content'` / `'edit any <bundle> content'` / `'delete any <bundle> content'` per bundle, or grant `'bypass node access'` for blanket node access, or set `is_admin: true` on the role for full-trust service accounts.
+
+Note that `administer nodes` alone is NOT enough — it grants the admin UI but not the per-content-type CRUD permissions.
 
 ### `405 Method Not Allowed` on writes
 
