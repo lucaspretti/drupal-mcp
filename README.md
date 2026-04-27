@@ -170,11 +170,27 @@ The bot role lacks the permission for that bundle. Grant `'create <bundle> conte
 
 If the `language` module is enabled, `/jsonapi/...` redirects to `/<langcode>/jsonapi/...`. Node's `fetch` follows automatically; `curl` needs `-L`. Nothing to fix on the server side.
 
+## Authentication
+
+The plugin currently uses **HTTP Basic auth** (`basic_auth` core module). This is the simplest path that works out of the box on any Drupal site.
+
+For a small / single-tenant deployment with a dedicated bot user and HTTPS-only, Basic auth is acceptable. For production or multi-integration setups, **OAuth2 via [`simple_oauth`](https://www.drupal.org/project/simple_oauth)** is the correct choice for service accounts:
+
+|  | Basic auth (current) | OAuth2 client_credentials (roadmap) |
+|---|---|---|
+| Drupal module | `basic_auth` (core) | `simple_oauth` (contrib) |
+| Wire format | `Authorization: Basic <base64(user:pass)>` on every request | `Authorization: Bearer <token>`, token cached + refreshed |
+| Revocation | Change user password (affects UI login too) | Revoke token / consumer atomically |
+| Scopes | None (role permissions only) | Per-token scopes |
+| Setup | Enable module, create user | Install module, generate RSA keys, create consumer |
+
+OAuth2 support is planned as an opt-in mode (`DRUPAL_AUTH_MODE=oauth` + `DRUPAL_OAUTH_CLIENT_ID` / `_SECRET` / `_TOKEN_URL`). Until then, treat the bot password as you would any service-account credential: store it in a secrets manager, scope the role tightly, and rotate periodically.
+
 ## Security notes
 
-- HTTPS only. The server sends Basic auth on every request — don't run against `http://`.
-- The Drupal-side bot user's role is the security boundary. Keep it scoped.
-- JSON:API respects field access, but not entity access bypass — be careful with admin-bypass perms on the bot role.
+- HTTPS only. Basic auth means the bot password travels on every request — don't run against `http://`.
+- The Drupal-side bot user's role is the security boundary. Keep it scoped to the bundles and operations you actually need.
+- JSON:API respects field access, but not entity-access-bypass — be careful with admin-bypass perms on the bot role.
 - `.env` is gitignored. Don't commit credentials.
 
 ## License
