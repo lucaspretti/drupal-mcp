@@ -2,10 +2,9 @@
 
 MCP server for Drupal sites via the core JSON:API. List, search, create, update, and delete nodes / taxonomy terms / users on any Drupal 10/11 site with the `jsonapi` module enabled.
 
-Works two ways:
+A standalone MCP server: `node drupal-mcp.js` with the env vars set. Plug it into Claude Code, Claude Desktop, Cline, or any other MCP-compatible client.
 
-- **Claude Code plugin** — install via the `lucaspretti-plugins` marketplace and Claude prompts you for the env vars.
-- **Standalone MCP** — `node drupal-mcp.js` with env vars set. Plug into Claude Desktop, Cline, or any other MCP-compatible client.
+(It was also published as a Claude Code plugin through the `lucaspretti-plugins` marketplace until 2026-07-10, and that marketplace was archived on 2026-09-23. Register the server directly, as below.)
 
 ## Why JSON:API and not the older Drupal MCP module?
 
@@ -77,14 +76,9 @@ drush user:role:add mcp_bot mcp_bot
 
 Store the password in your secrets manager.
 
-## Install (Claude Code plugin)
+## Install
 
-```
-/plugin marketplace add lucaspretti/claude-plugins
-/plugin install drupal-mcp@lucaspretti-plugins
-```
-
-Set these env vars (via shell, `.env`, or your secrets manager):
+The server needs these env vars (via shell, `.env`, or your secrets manager):
 
 ```
 DRUPAL_BASE_URL=https://your-site.example.com
@@ -92,7 +86,7 @@ DRUPAL_USER=mcp_bot
 DRUPAL_PASSWORD=••••••••
 ```
 
-## Install (standalone)
+Clone and install once (the last line is a quick standalone check):
 
 ```bash
 git clone https://github.com/lucaspretti/drupal-mcp.git
@@ -102,7 +96,19 @@ cp .env.example .env  # fill in
 node drupal-mcp.js
 ```
 
-In your MCP client config (Claude Desktop `claude_desktop_config.json`, Cline, etc.):
+### Claude Code
+
+```bash
+claude mcp add drupal -s user \
+  -e DRUPAL_BASE_URL=https://your-site.example.com \
+  -e DRUPAL_USER=mcp_bot \
+  -e DRUPAL_PASSWORD='<strong-pw>' \
+  -- node /absolute/path/to/drupal-mcp/drupal-mcp.js
+```
+
+### Other MCP clients
+
+In the client's config (Claude Desktop `claude_desktop_config.json`, Cline, etc.):
 
 ```json
 {
@@ -163,7 +169,7 @@ Fix: ensure every var in `.mcp.json` env is also set in `~/.claude/settings.json
 The `@modelcontextprotocol/sdk` postinstall race occasionally leaves `zod-to-json-schema` half-built. Reinstall:
 
 ```bash
-cd ~/.claude/plugins/cache/<marketplace>/drupal-mcp/<version>
+cd /absolute/path/to/drupal-mcp
 rm -rf node_modules package-lock.json && npm install
 ```
 
